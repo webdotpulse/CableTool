@@ -3,152 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kabelsectieberekeningstool</title>
+    <title>EV Lader Kabelberekening (AREI)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Kabelsectieberekening</h1>
-        <p>Een tool voor elektriciens, installateurs en ingenieurs om eenvoudig de sectie van een kabellengte te berekenen conform het Belgisch AREI.</p>
 
-        <form id="calculator-form">
-            <!-- Stap 1: Elektrische basisgegevens -->
-            <div class="step">
-                <h2>Stap 1: Elektrische basisgegevens</h2>
-                <div class="form-group">
-                    <label>Input type:</label>
-                    <input type="radio" id="stroom-radio" name="input-type" value="stroom" checked> Stroom (A)
-                    <input type="radio" id="vermogen-radio" name="input-type" value="vermogen"> Vermogen (kW/kVA)
-                </div>
-                <div class="form-group" id="stroom-group">
-                    <label for="stroom">Stroomsterkte (I):</label>
-                    <input type="number" id="stroom" placeholder="Ampère" step="any">
-                </div>
-                <div class="form-group" id="vermogen-group" style="display: none;">
-                    <label for="vermogen">Vermogen (P):</label>
-                    <input type="number" id="vermogen" placeholder="Waarde" step="any">
-                    <select id="vermogen-eenheid">
-                        <option value="kW">kW</option>
-                        <option value="kVA">kVA</option>
-                    </select>
-                </div>
-                 <div class="form-group">
-                    <label for="cos-phi">Cos φ (indien vermogen in kW):</label>
-                    <input type="number" id="cos-phi" placeholder="e.g., 0.8" value="0.8" step="any">
-                </div>
-                <div class="form-group">
-                    <label for="kabellengte">Kabellengte (L):</label>
-                    <input type="number" id="kabellengte" placeholder="meter" step="any">
-                </div>
-                <div class="form-group">
-                    <label for="spanning">Spanning (U):</label>
-                    <select id="spanning">
-                        <option value="230">230V</option>
-                        <option value="400">400V</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Systeem:</label>
-                    <span id="ac-mono-span">
-                        <input type="radio" id="ac-mono" name="systeem" value="ac-mono" checked>
-                        <label for="ac-mono">AC Monofasig</label>
-                    </span>
-                    <span id="ac-drie-span">
-                        <input type="radio" id="ac-drie" name="systeem" value="ac-drie">
-                        <label for="ac-drie">AC Driefasig</label>
-                    </span>
-                </div>
-            </div>
+<div class="container">
+    <header class="header">
+        <h1>EV Lader Kabelberekening (AREI)</h1>
+        <p class="subtitle">Bepaal de correcte AC voedingskabel en automaat voor uw EV laadpaal installatie in België.</p>
+    </header>
 
-            <!-- Stap 2: Kabeltype en constructie -->
-            <div class="step">
-                <h2>Stap 2: Kabeltype en constructie</h2>
-                <div class="form-group">
-                    <label for="kabeltype">Kabeltype:</label>
-                    <select id="kabeltype">
-                        <option value="XVB">XVB Cca</option>
-                        <option value="XGB">ALSECURE XGB Cca</option>
-                        <option value="EXVB">EXVB Eca</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="geleiders">Aantal geleiders:</label>
-                     <select id="geleiders">
-                        <option value="2x">2x (L+N)</option>
-                        <option value="3G">3G (L+N+PE)</option>
-                        <option value="3x">3x (3L)</option>
-                        <option value="4G">4G (3L+PE)</option>
-                        <option value="4x">4x (3L+N)</option>
-                        <option value="5G">5G (3L+N+PE)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Stap 3: Installatiewijze -->
-            <div class="step">
-                <h2>Stap 3: Installatiewijze</h2>
-                <div class="form-group">
-                    <label for="installatiewijze">Plaatsing:</label>
-                    <select id="installatiewijze">
-                        <option value="lucht">Bovengronds</option>
-                        <option value="grond">Ondergronds</option>
-                    </select>
-                </div>
-                 <div id="lucht-options">
-                    <div class="form-group">
-                        <label for="lucht-plaatsing">Wijze van plaatsing (lucht):</label>
-                        <select id="lucht-plaatsing">
-                            <option value="goot-geperforeerd">Op geperforeerde kabelgoot</option>
-                            <option value="goot-niet-geperforeerd">Op niet-geperforeerde kabelgoot</option>
-                             <option value="bundel-muur">In bundel tegen muur</option>
-                            <option value="buis-muur">In buis in een muur</option>
-                        </select>
+    <div class="card">
+        <div class="card-body">
+            <form id="cableForm" onsubmit="return false;">
+                <!-- Step 1: Charger and Length -->
+                <div class="step">
+                    <h2>Stap 1: Kies Lader & Lengte</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Type Lader</label>
+                            <div class="form-check-group">
+                                <input class="form-check-input" type="radio" name="chargerType" id="typeAC" value="ac" checked>
+                                <label class="form-check-label" for="typeAC">AC Lader (Particulier & Zakelijk)</label>
+                                <input class="form-check-input" type="radio" name="chargerType" id="typeDC" value="dc">
+                                <label class="form-check-label" for="typeDC">DC Snellader (Commercieel)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phase" class="form-label">Netaansluiting</label>
+                            <select id="phase" name="phase" class="form-select">
+                                <option value="single" selected>Monofasig</option>
+                                <option value="three">Driefasig</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amperage" class="form-label">Laadpaal Model</label>
+                            <select id="amperage" name="amperage" class="form-select"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="length" class="form-label">Kabellengte (m)</label>
+                            <input type="number" id="length" name="length" class="form-control" value="15" required>
+                        </div>
                     </div>
                 </div>
-                <div id="grond-options" style="display: none;">
-                    <div class="form-group">
-                        <label for="grond-diepte">Diepte:</label>
-                        <input type="number" id="grond-diepte" value="70" placeholder="cm">
+
+                <!-- Step 2: Installation Details -->
+                <div class="step">
+                    <h2>Stap 2: Installatie Details</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="installatiewijze" class="form-label">Plaatsing</label>
+                            <select id="installatiewijze" class="form-select">
+                                <option value="lucht">Bovengronds</option>
+                                <option value="grond">Ondergronds</option>
+                            </select>
+                        </div>
+                         <div class="form-group" id="lucht-options">
+                            <label for="lucht-plaatsing" class="form-label">Wijze van plaatsing (Bovengronds)</label>
+                            <select id="lucht-plaatsing" class="form-select">
+                                <option value="goot-geperforeerd">Op geperforeerde kabelgoot</option>
+                                <option value="goot-niet-geperforeerd">Op niet-geperforeerde kabelgoot</option>
+                                <option value="bundel-muur">In bundel tegen muur</option>
+                                <option value="buis-muur">In buis in een muur</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="grond-options" style="display: none;">
+                            <label for="grond-diepte" class="form-label">Diepte (cm)</label>
+                            <input type="number" id="grond-diepte" class="form-control" value="70">
+                        </div>
+                    </div>
+                     <div class="form-row">
+                        <div class="form-group">
+                            <label for="temperatuur" class="form-label">Omgevingstemperatuur (°C)</label>
+                            <input type="number" id="temperatuur" class="form-control" value="25">
+                        </div>
+                        <div class="form-group">
+                            <label for="aantal-kabels" class="form-label">Aantal kabels in bundel/laag</label>
+                            <input type="number" id="aantal-kabels" class="form-control" value="1" min="1">
+                        </div>
+                        <div class="form-group" id="kabel-spacing-group">
+                            <label class="form-label">Kabels aaneensluitend?</label>
+                            <div class="form-check-group">
+                                <input class="form-check-input" type="radio" id="spacing-ja" name="spacing" value="ja" checked>
+                                <label class="form-check-label" for="spacing-ja">Ja</label>
+                                <input class="form-check-input" type="radio" id="spacing-nee" name="spacing" value="nee">
+                                <label class="form-check-label" for="spacing-nee">Nee (>2cm)</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="temperatuur">Omgevingstemperatuur:</label>
-                    <input type="number" id="temperatuur" value="25" placeholder="°C">
-                </div>
-                <div class="form-group">
-                    <label for="aantal-kabels">Aantal kabels in bundel/laag:</label>
-                    <input type="number" id="aantal-kabels" value="1" min="1">
-                </div>
-                 <div class="form-group" id="kabel-spacing-group">
-                    <label>Kabels aaneensluitend?</label>
-                    <input type="radio" id="spacing-ja" name="spacing" value="ja" checked> Ja
-                    <input type="radio" id="spacing-nee" name="spacing" value="nee"> Nee (min. 2cm afstand)
-                </div>
-                <div class="form-group">
-                    <label for="spanningsval-max">Max. toegelaten spanningsval:</label>
-                    <select id="spanningsval-max">
-                        <option value="0.03">3% (Verlichting)</option>
-                        <option value="0.05">5% (Andere)</option>
-                    </select>
-                </div>
-            </div>
-
-            <button type="button" onclick="calculate()">Berekenen</button>
-        </form>
-
-        <!-- Stap 4: Resultaat -->
-        <div id="result-step" class="step" style="display:none;">
-            <h2>Stap 4: Resultaat</h2>
-            <div id="resultaat">
-                <p>Berekende kabelsectie: <strong id="berekende-sectie"></strong></p>
-                <p>Spanningsval (ΔU): <strong id="spanningsval"></strong> (<strong id="spanningsval-procent"></strong>)</p>
-                <p>Vereiste stroomcapaciteit (I'z): <strong id="vereiste-stroom"></strong></p>
-                <p>Stroomcapaciteit gekozen kabel (Iz): <strong id="iz-kabel"></strong></p>
-            </div>
-            <button onclick="window.print()">Afdrukken</button>
+            </form>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <div id="results-section" class="results-container" style="display: none;">
+        <h2 class="results-title">Resultaten</h2>
+        <div id="resultsOutput" class="card"></div>
+        <div id="notes-section" class="alert" role="alert"></div>
+    </div>
+
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
