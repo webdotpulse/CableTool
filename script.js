@@ -19,41 +19,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- DOM Elements ---
     const form = document.getElementById('cableForm');
-    const phaseSelect = document.getElementById('phase');
-    const amperageSelect = document.getElementById('amperage');
-    const chargerTypeRadios = form.querySelectorAll('input[name="chargerType"]');
+    const allInputs = form.querySelectorAll('input, select');
     const resultsSection = document.getElementById('results-section');
     const resultsOutput = document.getElementById('resultsOutput');
     const notesSection = document.getElementById('notes-section');
-    const installatiewijzeSelect = document.getElementById('installatiewijze');
-    const luchtPlaatsingSelect = document.getElementById('lucht-plaatsing');
 
     // --- UI LOGIC ---
+    function toggleCalcMode() {
+        const mode = document.querySelector('input[name="calcMode"]:checked').value;
+        document.getElementById('ev-charger-inputs').style.display = mode === 'ev' ? 'block' : 'none';
+        document.getElementById('manual-inputs').style.display = mode === 'manual' ? 'block' : 'none';
+        runCalculation();
+    }
+
     function rebuildAmperageDropdown() {
         const chargerType = document.querySelector('input[name="chargerType"]:checked').value;
-        const isAC = chargerType === 'ac';
-        const singlePhaseOption = phaseSelect.querySelector('option[value="single"]');
+        const phase = document.getElementById('phase').value;
+        const amperageSelect = document.getElementById('amperage');
 
-        if (isAC) {
-            singlePhaseOption.disabled = false;
-        } else {
-            singlePhaseOption.disabled = true;
-            if (phaseSelect.value === 'single') {
-                phaseSelect.value = 'three';
-            }
-        }
-
-        const phase = phaseSelect.value;
         amperageSelect.innerHTML = '';
-
-        const chargersToList = isAC ? acChargers.filter(c => c.specs.phase === phase) : dcChargers;
+        const chargersToList = (chargerType === 'ac') ? acChargers.filter(c => c.specs.phase === phase) : dcChargers;
 
         if (chargersToList.length > 0) {
             chargersToList.forEach(charger => {
                 const option = document.createElement('option');
                 option.value = charger.specs.input_current;
                 option.textContent = `${charger.name}`;
-                option.dataset.power = charger.specs.power_kw;
                 amperageSelect.appendChild(option);
             });
         } else {
@@ -61,95 +52,77 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function toggleInstallatieOptions() {
-        const installatiewijze = installatiewijzeSelect.value;
-        document.getElementById('lucht-options').style.display = installatiewijze === 'lucht' ? 'flex' : 'none';
-        document.getElementById('grond-options').style.display = installatiewijze === 'grond' ? 'flex' : 'none';
-        toggleSpacingOption();
-    }
+    function setupEventListeners() {
+        document.querySelectorAll('input[name="calcMode"]').forEach(radio => radio.addEventListener('change', toggleCalcMode));
+        document.querySelectorAll('input[name="chargerType"]').forEach(radio => radio.addEventListener('change', () => { rebuildAmperageDropdown(); runCalculation(); }));
+        document.getElementById('phase').addEventListener('change', () => { rebuildAmperageDropdown(); runCalculation(); });
+        document.getElementById('spanning').addEventListener('change', runCalculation);
+        document.querySelectorAll('input[name="systeem"]').forEach(radio => radio.addEventListener('change', runCalculation));
+        document.querySelectorAll('input[name="input-type"]').forEach(radio => radio.addEventListener('change', runCalculation));
 
-    function toggleSpacingOption() {
-        const installatiewijze = installatiewijzeSelect.value;
-        const luchtPlaatsing = luchtPlaatsingSelect.value;
-        const spacingGroup = document.getElementById('kabel-spacing-group');
-        spacingGroup.style.display = (installatiewijze === 'lucht' && (luchtPlaatsing.includes('goot'))) ? 'flex' : 'none';
+        const debouncedCalc = debounce(runCalculation, 400);
+        allInputs.forEach(input => {
+            if (input.type === 'number') {
+                input.addEventListener('input', debouncedCalc);
+            } else {
+                input.addEventListener('change', runCalculation);
+            }
+        });
     }
 
     // --- CALCULATION LOGIC ---
-    function getCorrectionFactor(table, value) {
-        // This function now interpolates for a more accurate result
-        if (value <= table[0].temp) return table[0];
-        if (value >= table[table.length - 1].temp) return table[table.length - 1];
-
-        for (let i = 0; i < table.length - 1; i++) {
-            if (value >= table[i].temp && value <= table[i+1].temp) {
-                const lower = table[i];
-                const upper = table[i+1];
-                const range = upper.temp - lower.temp;
-                const pos = value - lower.temp;
-                const pvcFactor = lower.pvc + (upper.pvc - lower.pvc) * (pos / range);
-                const xlpeFactor = lower.xlpe + (upper.xlpe - lower.xlpe) * (pos / range);
-                return { temp: value, pvc: pvcFactor, xlpe: xlpeFactor };
-            }
-        }
-        return table[table.length - 1]; // Fallback
-    }
-
-    function getGroupingFactor(table, count) {
-        if (count <= 1) return 1.0;
-        let factor = table[table.length - 1].factor;
-        for (const entry of table) {
-            if (count <= entry.count) {
-                factor = entry.factor;
-                break;
-            }
-        }
-        return factor;
-    }
-
-    function findNextStandardBreaker(current) {
-        const requiredBreakerCurrent = current * 1.25; // 125% rule for continuous load
-        for (const size of standardBreakerSizes) {
-            if (size >= requiredBreakerCurrent) {
-                return size;
-            }
-        }
-        return standardBreakerSizes[standardBreakerSizes.length - 1]; // Fallback to largest
-    }
-
     function runCalculation() {
-        const Ib = parseFloat(amperageSelect.value);
-        const kabellengte = parseFloat(document.getElementById('length').value);
-        const phase = phaseSelect.value;
-        const chargerType = document.querySelector('input[name="chargerType"]:checked').value;
+        const mode = document.querySelector('input[name="calcMode"]:checked').value;
+        let Ib, spanning, phase, calcTitle;
 
-        if (isNaN(Ib) || isNaN(kabellengte)) {
-            resultsSection.style.display = 'none';
-            return;
+        if (mode === 'ev') {
+            const amperageSelect = document.getElementById('amperage');
+            if (!amperageSelect.value) { resultsSection.style.display = 'none'; return; }
+            Ib = parseFloat(amperageSelect.value);
+            phase = document.getElementById('phase').value;
+            spanning = phase === 'single' ? 230 : 400;
+            calcTitle = amperageSelect.options[amperageSelect.selectedIndex].text;
+        } else { // Manual mode
+            const isStroom = document.getElementById('stroom-radio').checked;
+            spanning = parseInt(document.getElementById('spanning').value);
+            phase = document.querySelector('input[name="systeem"]:checked').value;
+
+            if (isStroom) {
+                Ib = parseFloat(document.getElementById('stroom').value);
+            } else {
+                const vermogen = parseFloat(document.getElementById('vermogen').value) * 1000;
+                const cosPhi = parseFloat(document.getElementById('cos-phi').value);
+                if (phase === 'single') {
+                    Ib = vermogen / (spanning * cosPhi);
+                } else {
+                    Ib = vermogen / (spanning * Math.sqrt(3) * cosPhi);
+                }
+            }
+            calcTitle = `Manuele Invoer: ${Ib.toFixed(0)}A`;
         }
 
-        // Installation details
-        const installatiewijze = installatiewijzeSelect.value;
+        if (isNaN(Ib) || Ib <= 0) { resultsSection.style.display = 'none'; return; }
+
+        // Shared calculation logic
+        const kabellengte = parseFloat(document.getElementById('length').value);
+        const installatiewijze = document.getElementById('installatiewijze').value;
         const temperatuur = parseInt(document.getElementById('temperatuur').value);
         const aantalKabels = parseInt(document.getElementById('aantal-kabels').value);
-        const maxSpanningsval = 0.05; // Fixed at 5% for chargers as per common practice
-        const spanning = phase === 'single' ? 230 : 400;
-
-        // Use a default cable type for calculation, as they are very similar. User can choose any.
+        const maxSpanningsval = 0.05;
         const kabelInfo = cableData["XVB"];
         const insulationType = kabelInfo.type;
 
-        // Calculate correction factor
         let totalCorrectionFactor = 1.0;
         const tempTable = installatiewijze === 'lucht' ? correctionFactors.tempLucht : correctionFactors.tempGrond;
         const tempFactors = getCorrectionFactor(tempTable, temperatuur);
         totalCorrectionFactor *= tempFactors[insulationType];
 
         if (aantalKabels > 1) {
-            if (installatiewijze === 'grond') {
+            // ... [grouping factor logic as before] ...
+             if (installatiewijze === 'grond') {
                  totalCorrectionFactor *= getGroupingFactor(correctionFactors.groupingGrond, aantalKabels);
             } else {
-                const luchtPlaatsing = luchtPlaatsingSelect.value;
+                const luchtPlaatsing = document.getElementById('lucht-plaatsing').value;
                 if(luchtPlaatsing.includes('bundel') || luchtPlaatsing.includes('buis')){
                      totalCorrectionFactor *= getGroupingFactor(correctionFactors.groupingLuchtBundel, aantalKabels);
                 } else {
@@ -160,27 +133,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        const Iz_required = Ib / totalCorrectionFactor;
-
-        // Find suitable cable section
+        const recommendedBreaker = findNextStandardBreaker(Ib, mode);
         const izKey = installatiewijze === 'lucht' ? 'iz_lucht' : 'iz_grond';
-        const availableSections = kabelInfo.sections;
         let finalSection = null;
 
-        for (let i = 0; i < availableSections.length; i++) {
-            const section = availableSections[i];
-            const breakerSize = findNextStandardBreaker(Ib);
-            if (section[izKey] * totalCorrectionFactor >= breakerSize) {
+        for (let i = 0; i < kabelInfo.sections.length; i++) {
+            const section = kabelInfo.sections[i];
+            if (section[izKey] * totalCorrectionFactor >= recommendedBreaker) {
                 let deltaU_V = (section.delta_u * Ib * kabellengte) / 1000;
-                if(phase === 'single') {
-                    deltaU_V *= 2;
-                } else {
-                    deltaU_V *= Math.sqrt(3);
-                }
+                if (phase === 'single') { deltaU_V *= 2; }
+                else { deltaU_V *= Math.sqrt(3); }
 
-                const deltaU_percent = deltaU_V / spanning;
-
-                if (deltaU_percent <= maxSpanningsval) {
+                if ((deltaU_V / spanning) <= maxSpanningsval) {
                     finalSection = section;
                     break;
                 }
@@ -188,132 +152,93 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (finalSection) {
-            const recommendedBreaker = findNextStandardBreaker(Ib);
             let deltaU_V_final = (finalSection.delta_u * Ib * kabellengte) / 1000;
-            if(phase === 'single') {
-                deltaU_V_final *= 2;
-            } else {
-                deltaU_V_final *= Math.sqrt(3);
-            }
-
+            if (phase === 'single') { deltaU_V_final *= 2; }
+            else { deltaU_V_final *= Math.sqrt(3); }
             const voltageDrop = (deltaU_V_final / spanning * 100).toFixed(2);
 
             displayResults({
-                success: true,
-                results: {
-                    recommendedSection: finalSection.size,
-                    recommendedBreaker: recommendedBreaker,
-                    voltageDrop: voltageDrop
-                },
-                inputs: {
-                    length: kabellengte,
-                    amperage: Ib.toFixed(0),
-                    phase: phase,
-                    chargerType: chargerType
-                }
+                success: true, results: { recommendedSection: finalSection.size, recommendedBreaker, voltageDrop },
+                inputs: { calcMode: mode, title: calcTitle }
             });
         } else {
-            displayError("Geen geschikte kabel gevonden voor deze parameters. De vereiste stroom is te hoog.");
+            displayError("Geen geschikte kabel gevonden. De vereiste stroom is te hoog voor de beschikbare secties onder deze installatieomstandigheden.");
         }
     }
 
-    // --- DISPLAY LOGIC ---
+    function findNextStandardBreaker(current, mode) {
+        const factor = (mode === 'ev') ? 1.25 : 1.05;
+        const requiredBreakerCurrent = current * factor;
+        for (const size of standardBreakerSizes) {
+            if (size >= requiredBreakerCurrent) return size;
+        }
+        return standardBreakerSizes[standardBreakerSizes.length - 1];
+    }
+
+    function getCorrectionFactor(table, value) {
+        if (value <= table[0].temp) return table[0];
+        if (value >= table[table.length - 1].temp) return table[table.length - 1];
+        for (let i = 0; i < table.length - 1; i++) {
+            if (value >= table[i].temp && value <= table[i+1].temp) return table[i];
+        }
+        return table[table.length - 1];
+    }
+
+    function getGroupingFactor(table, count) {
+        if (count <= 1) return 1.0;
+        for (const entry of table) { if (count <= entry.count) return entry.factor; }
+        return table[table.length - 1].factor;
+    }
+
+    function displayResults(result) {
+        // ... [display logic from V2, adapted for combined mode] ...
+        const res = result.results;
+        const inputs = result.inputs;
+        const voltageDropStatus = res.voltageDrop <= 3 ? 'text-success' : (res.voltageDrop <= 5 ? 'text-warning' : 'text-danger');
+
+        const html = `
+            <div class="card-header">Aanbeveling voor: ${inputs.title}</div>
+            <div class="card-body"><div class="row">
+                <div class="col-sm-4 border-end">
+                    <h5>Aanbevolen Kabel</h5><p class="h3">${res.recommendedSection} mm²</p><span class="text-muted">(XVB/XGB/EXVB)</span>
+                </div>
+                <div class="col-sm-4 border-end">
+                    <h5>Vereiste Automaat</h5><p class="h3">${res.recommendedBreaker}A</p><span class="text-muted">Veiligheidsautomaat</span>
+                </div>
+                <div class="col-sm-4">
+                    <h5>Spanningsval</h5><p class="h3 ${voltageDropStatus}">${res.voltageDrop}%</p><span class="text-muted">(Max Toegelaten: 5%)</span>
+                </div>
+            </div></div>`;
+        resultsOutput.innerHTML = html;
+        updateNotes(inputs.calcMode === 'ev' ? document.querySelector('input[name="chargerType"]:checked').value : 'manual');
+        resultsSection.style.display = 'block';
+    }
+
     function displayError(message) {
         resultsOutput.innerHTML = `<div class="card-body" style="text-align: center; padding: 2rem;"><div class="alert alert-danger">${message}</div></div>`;
         resultsSection.style.display = 'block';
         notesSection.style.display = 'none';
     }
 
-    function displayResults(result) {
-        if (!result.success) {
-            displayError(result.error || "Onbekende fout.");
+    function updateNotes(type) {
+        if (type === 'manual') {
+            notesSection.style.display = 'none';
             return;
         }
-
-        const res = result.results;
-        const inputs = result.inputs;
-        const voltageDropStatus = res.voltageDrop <= 3 ? 'text-success' : (res.voltageDrop <= 5 ? 'text-warning' : 'text-danger');
-        const selectedCharger = amperageSelect.options[amperageSelect.selectedIndex].text;
-
-        const html = `
-            <div class="card-header">
-                Aanbeveling voor ${selectedCharger}
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-sm-4 border-end">
-                        <h5>Aanbevolen Kabel</h5>
-                        <p class="h3">${res.recommendedSection} mm²</p>
-                        <span class="text-muted">(XVB / XGB / EXVB)</span>
-                    </div>
-                    <div class="col-sm-4 border-end">
-                        <h5>Vereiste Automaat</h5>
-                        <p class="h3">${res.recommendedBreaker}A</p>
-                         <span class="text-muted">30mA Diff. Type A/B</span>
-                    </div>
-                    <div class="col-sm-4">
-                        <h5>Spanningsval</h5>
-                        <p class="h3 ${voltageDropStatus}">${res.voltageDrop}%</p>
-                        <span class="text-muted">(Max Toegelaten: 5%)</span>
-                    </div>
-                </div>
-            </div>
-        `;
-        resultsOutput.innerHTML = html;
-        updateNotes(inputs.chargerType);
-        resultsSection.style.display = 'block';
         notesSection.style.display = 'block';
-    }
-
-    function updateNotes(chargerType) {
-        const isAC = chargerType === 'ac';
-        const acNotes = `
-            <h4><i class="bx bx-info-circle me-2"></i>Belangrijke AREI Installatie-opmerkingen</h4>
-            <ul>
-                <li>De AC lader moet op een <strong>aparte, afgezekerde kring</strong> aangesloten worden.</li>
-                <li>De kring moet beveiligd zijn met een <strong>30mA Type A differentieelschakelaar</strong>.</li>
-                <li>De AC lader zelf moet een geïntegreerde <strong>6mA DC-lekstroomdetectie</strong> hebben.</li>
-                <li>Deze berekening is een schatting. Een erkend elektricien moet de finale validatie en installatie uitvoeren.</li>
-            </ul>`;
-        const dcNotes = `
-            <h4><i class="bx bxs-error-alt me-2"></i>Kritische opmerkingen voor DC Snelladers</h4>
-            <ul>
-                <li>DC Snellader-installaties zijn complexe projecten die vaak een <strong>aparte transformator</strong> en nieuwe aansluiting van de netbeheerder (bv. Fluvius) vereisen.</li>
-                <li>Een <strong>Type B differentieelschakelaar</strong> is doorgaans verplicht.</li>
-                <li>Deze calculator berekent enkel de <strong>AC voedingskabel</strong> naar de lader, niet de DC kabel naar het voertuig.</li>
-                <li><strong>Deze tool is enkel voor een eerste inschatting.</strong> Het finale ontwerp en de installatie MOETEN door een gekwalificeerd ingenieur en erkend elektricien gebeuren.</li>
-            </ul>`;
+        const isAC = type === 'ac';
+        const acNotes = `<h4><i class="bx bx-info-circle me-2"></i>Belangrijke AREI Installatie-opmerkingen</h4><ul><li>De AC lader moet op een <strong>aparte, afgezekerde kring</strong> aangesloten worden.</li><li>De kring moet beveiligd zijn met een <strong>30mA Type A differentieelschakelaar</strong>.</li><li>De AC lader zelf moet een geïntegreerde <strong>6mA DC-lekstroomdetectie</strong> hebben.</li><li>Deze berekening is een schatting. Een erkend elektricien moet de finale validatie en installatie uitvoeren.</li></ul>`;
+        const dcNotes = `<h4><i class="bx bxs-error-alt me-2"></i>Kritische opmerkingen voor DC Snelladers</h4><ul><li>DC Snellader-installaties zijn complexe projecten die vaak een <strong>aparte transformator</strong> en nieuwe aansluiting van de netbeheerder (bv. Fluvius) vereisen.</li><li>Een <strong>Type B differentieelschakelaar</strong> is doorgaans verplicht.</li><li>Deze calculator berekent enkel de <strong>AC voedingskabel</strong> naar de lader, niet de DC kabel naar het voertuig.</li><li><strong>Deze tool is enkel voor een eerste inschatting.</strong> Het finale ontwerp en de installatie MOETEN door een gekwalificeerd ingenieur en erkend elektricien gebeuren.</li></ul>`;
         notesSection.innerHTML = isAC ? acNotes : dcNotes;
         notesSection.className = `alert ${isAC ? 'alert-info' : 'alert-danger'}`;
     }
 
     function debounce(func, delay) {
         let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), delay);
-        };
+        return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); };
     }
 
-    const debouncedCalculation = debounce(runCalculation, 400);
-
-    // --- EVENT LISTENERS ---
-    const allInputs = form.querySelectorAll('input, select');
-    allInputs.forEach(input => {
-        if (input.name === 'length') {
-            input.addEventListener('input', debouncedCalculation);
-        } else {
-            input.addEventListener('change', runCalculation);
-        }
-    });
-
-    chargerTypeRadios.forEach(radio => radio.addEventListener('change', rebuildAmperageDropdown));
-    phaseSelect.addEventListener('change', rebuildAmperageDropdown);
-    installatiewijzeSelect.addEventListener('change', toggleInstallatieOptions);
-    luchtPlaatsingSelect.addEventListener('change', toggleSpacingOption);
-
     // --- INITIAL STATE ---
-    rebuildAmperageDropdown();
-    toggleInstallatieOptions();
-    setTimeout(runCalculation, 50);
+    setupEventListeners();
+    toggleCalcMode();
 });

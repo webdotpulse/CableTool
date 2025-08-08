@@ -3,36 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EV Lader Kabelberekening (AREI)</title>
+    <title>Kabelberekening (AREI)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
     <header class="header">
-        <h1>EV Lader Kabelberekening (AREI)</h1>
-        <p class="subtitle">Bepaal de correcte AC voedingskabel en automaat voor uw EV laadpaal installatie in België.</p>
+        <h1>Kabel & Automaat Calculator (AREI)</h1>
+        <p class="subtitle">Bepaal de correcte voedingskabel en automaat voor uw installatie.</p>
     </header>
 
     <div class="card">
         <div class="card-body">
             <form id="cableForm" onsubmit="return false;">
-                <!-- Step 1: Charger and Length -->
+                <!-- Step 1: Calculation Mode -->
                 <div class="step">
-                    <h2>Stap 1: Kies Lader & Lengte</h2>
+                    <h2>Stap 1: Kies Berekeningsmodus</h2>
+                    <div class="form-group">
+                        <div class="form-check-group">
+                            <input class="form-check-input" type="radio" name="calcMode" id="modeEV" value="ev" checked>
+                            <label class="form-check-label" for="modeEV">EV Lader Selectie</label>
+                            <input class="form-check-input" type="radio" name="calcMode" id="modeManual" value="manual">
+                            <label class="form-check-label" for="modeManual">Manuele Invoer</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2A: Inputs for EV Charger Mode -->
+                <div id="ev-charger-inputs" class="step">
+                    <h2>Stap 2: Kies Lader</h2>
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Type Lader</label>
                             <div class="form-check-group">
                                 <input class="form-check-input" type="radio" name="chargerType" id="typeAC" value="ac" checked>
-                                <label class="form-check-label" for="typeAC">AC Lader (Particulier & Zakelijk)</label>
+                                <label class="form-check-label" for="typeAC">AC Lader</label>
                                 <input class="form-check-input" type="radio" name="chargerType" id="typeDC" value="dc">
-                                <label class="form-check-label" for="typeDC">DC Snellader (Commercieel)</label>
+                                <label class="form-check-label" for="typeDC">DC Snellader</label>
                             </div>
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
+                         <div class="form-group">
                             <label for="phase" class="form-label">Netaansluiting</label>
                             <select id="phase" name="phase" class="form-select">
                                 <option value="single" selected>Monofasig</option>
@@ -43,17 +54,65 @@
                             <label for="amperage" class="form-label">Laadpaal Model</label>
                             <select id="amperage" name="amperage" class="form-select"></select>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Step 2B: Inputs for Manual Mode -->
+                <div id="manual-inputs" class="step" style="display: none;">
+                    <h2>Stap 2: Elektrische Gegevens</h2>
+                     <div class="form-row">
                         <div class="form-group">
-                            <label for="length" class="form-label">Kabellengte (m)</label>
-                            <input type="number" id="length" name="length" class="form-control" value="15" required>
+                            <label class="form-label">Input type:</label>
+                             <div class="form-check-group">
+                                <input type="radio" id="stroom-radio" name="input-type" value="stroom" checked> Stroom (A)
+                                <input type="radio" id="vermogen-radio" name="input-type" value="vermogen"> Vermogen (kW)
+                            </div>
+                        </div>
+                        <div class="form-group" id="stroom-group">
+                            <label for="stroom" class="form-label">Stroomsterkte (I)</label>
+                            <input type="number" id="stroom" class="form-control" placeholder="Ampère" step="any">
+                        </div>
+                        <div class="form-group" id="vermogen-group" style="display: none;">
+                            <label for="vermogen" class="form-label">Vermogen (P)</label>
+                            <input type="number" id="vermogen" class="form-control" placeholder="kW" step="any">
+                        </div>
+                         <div class="form-group" id="cos-phi-group" style="display: none;">
+                            <label for="cos-phi" class="form-label">Cos φ</label>
+                            <input type="number" id="cos-phi" class="form-control" value="0.95" step="any">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="spanning" class="form-label">Spanning (U)</label>
+                            <select id="spanning" class="form-select">
+                                <option value="230">230V</option>
+                                <option value="400">400V</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Systeem</label>
+                            <div class="form-check-group" id="systeem-group">
+                                <span id="ac-mono-span">
+                                    <input type="radio" id="ac-mono" name="systeem" value="single" checked>
+                                    <label for="ac-mono">Monofasig</label>
+                                </span>
+                                <span id="ac-drie-span">
+                                    <input type="radio" id="ac-drie" name="systeem" value="three">
+                                    <label for="ac-drie">Driefasig</label>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Step 2: Installation Details -->
+                <!-- Step 3: Shared Installation Details -->
                 <div class="step">
-                    <h2>Stap 2: Installatie Details</h2>
-                    <div class="form-row">
+                    <h2>Stap 3: Installatie Details</h2>
+                     <div class="form-row">
+                         <div class="form-group">
+                            <label for="length" class="form-label">Kabellengte (m)</label>
+                            <input type="number" id="length" name="length" class="form-control" value="15" required>
+                        </div>
                         <div class="form-group">
                             <label for="installatiewijze" class="form-label">Plaatsing</label>
                             <select id="installatiewijze" class="form-select">
@@ -62,7 +121,7 @@
                             </select>
                         </div>
                          <div class="form-group" id="lucht-options">
-                            <label for="lucht-plaatsing" class="form-label">Wijze van plaatsing (Bovengronds)</label>
+                            <label for="lucht-plaatsing" class="form-label">Wijze van plaatsing</label>
                             <select id="lucht-plaatsing" class="form-select">
                                 <option value="goot-geperforeerd">Op geperforeerde kabelgoot</option>
                                 <option value="goot-niet-geperforeerd">Op niet-geperforeerde kabelgoot</option>
