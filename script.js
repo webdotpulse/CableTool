@@ -134,10 +134,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const luchtPlaatsingSelect = document.getElementById('lucht-plaatsing');
     luchtPlaatsingSelect.addEventListener('change', toggleSpacingOption);
 
+    const spanningSelect = document.getElementById('spanning');
+    spanningSelect.addEventListener('change', toggleSysteemOptions);
+
     toggleInputType();
     toggleInstallatieOptions();
     toggleSpacingOption();
+    toggleSysteemOptions(); // Initial call
 });
+
+function toggleSysteemOptions() {
+    const spanning = document.getElementById('spanning').value;
+    const acMonoSpan = document.getElementById('ac-mono-span');
+    const acDrieSpan = document.getElementById('ac-drie-span');
+    const acMonoRadio = document.getElementById('ac-mono');
+    const acDrieRadio = document.getElementById('ac-drie');
+
+    if (spanning === '400') {
+        acMonoSpan.style.display = 'none';
+        acDrieSpan.style.display = 'inline'; // or 'block'
+        acDrieRadio.checked = true;
+    } else { // 230V
+        acMonoSpan.style.display = 'inline'; // or 'block'
+        acDrieSpan.style.display = 'inline'; // or 'block'
+    }
+}
 
 function toggleInputType() {
     const stroomGroup = document.getElementById('stroom-group');
