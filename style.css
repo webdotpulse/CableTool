@@ -10,105 +10,184 @@ body {
 .container {
     max-width: 800px;
     margin: auto;
-    background: #fff;
-    padding: 20px 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 2rem;
 }
 
 h1 {
+    font-size: 2.5rem;
     color: #005a9e;
-    text-align: center;
-    border-bottom: 2px solid #005a9e;
-    padding-bottom: 10px;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #6c757d;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    margin-bottom: 2rem;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+.step {
+    margin-bottom: 2rem;
+}
+
+.step:last-child {
+    margin-bottom: 0;
 }
 
 h2 {
     color: #005a9e;
     border-bottom: 1px solid #eee;
     padding-bottom: 8px;
-    margin-top: 30px;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
 }
 
-.step {
-    margin-bottom: 20px;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fafafa;
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
 }
 
-.form-group label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 5px;
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
-input[type="number"],
-select {
+.form-select,
+.form-control {
     width: 100%;
-    padding: 10px;
+    padding: 10px 12px;
+    font-size: 1rem;
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-sizing: border-box; /* Important */
+    box-sizing: border-box;
+    background-color: #fff;
 }
 
-input[type="radio"] {
-    margin-right: 5px;
+.form-check-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding-top: 0.5rem;
 }
 
-button {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    font-weight: bold;
-    color: #fff;
-    background-color: #007bff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 20px;
+.form-check-input {
+    margin-right: 0.5rem;
 }
 
-button:hover {
-    background-color: #0056b3;
+/* Results section */
+.results-container {
+    margin-top: 2rem;
 }
 
-#result-step {
-    background-color: #eaf7ff;
-    border-color: #007bff;
+.results-title {
+    text-align: center;
+    margin-bottom: 1.5rem;
 }
 
-#resultaat p {
-    font-size: 1.1em;
+#resultsOutput .card-header {
+    background-color: #005a9e;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 1rem;
+    text-align: center;
+    border-bottom: 0;
 }
 
-#resultaat strong {
-    color: #005a9e;
+#resultsOutput .card-body {
+    padding: 2rem;
 }
 
-/* Print-specific styles */
+#resultsOutput .row {
+    display: flex;
+    justify-content: space-around;
+}
+
+#resultsOutput .col-sm-4 {
+    flex: 1;
+    text-align: center;
+    padding: 0 1rem;
+}
+
+#resultsOutput .border-end {
+    border-right: 1px solid #dee2e6;
+}
+
+#resultsOutput h5 {
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#resultsOutput .h3 {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.text-success { color: #198754; }
+.text-warning { color: #ffc107; }
+.text-danger { color: #dc3545; }
+
+/* Alert / Notes Section */
+.alert {
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+.alert-info {
+    color: #052c65;
+    background-color: #cfe2ff;
+    border: 1px solid #b6d4fe;
+}
+.alert-danger {
+    color: #58151c;
+    background-color: #f8d7da;
+    border: 1px solid #f1aeb5;
+}
+.alert ul {
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+.alert h4 {
+    margin-top: 0;
+    font-size: 1.2rem;
+}
+
 @media print {
-    body {
+    body, .container {
         background-color: #fff;
-    }
-    #calculator-form, button {
-        display: none;
-    }
-    .container {
         box-shadow: none;
         border: none;
         padding: 0;
         margin: 0;
-        max-width: 100%;
     }
-    #result-step {
+    .header, form {
+        display: none;
+    }
+    .results-container {
         display: block !important;
-        border: none;
     }
 }
