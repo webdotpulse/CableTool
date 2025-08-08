@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function findNextStandardBreaker(current, mode) {
-        const factor = (mode === 'ev') ? 1.25 : 1.05;
+        const factor = 1.05; // User-requested factor for all modes
         const requiredBreakerCurrent = current * factor;
         for (const size of standardBreakerSizes) {
             if (size >= requiredBreakerCurrent) return size;
